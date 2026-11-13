@@ -1,0 +1,242 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HomeValue AI | Smart Property Analytics</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+<nav class="nav">
+    <a class="brand" href="/">⌂ HomeValue AI</a>
+    <span class="nav-tag">AI Property Intelligence</span>
+</nav>
+
+<main class="container">
+
+<section class="hero">
+    <div class="eyebrow">SMART REAL ESTATE PLATFORM</div>
+    <h1>Discover your home's <span>true value.</span></h1>
+    <p>Predict property prices, explore market trends and compare locations with machine learning.</p>
+
+    <div class="mini-stats">
+        <div><strong>5</strong><small>Input features</small></div>
+        <div><strong>ML</strong><small>Random Forest</small></div>
+        <div><strong>₹</strong><small>Price prediction</small></div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-heading">
+        <div>
+            <div class="eyebrow">PROPERTY VALUATION</div>
+            <h2>Tell us about your house</h2>
+        </div>
+        <span class="step">01 / 01</span>
+    </div>
+
+    <form method="POST">
+        <div class="form-grid">
+
+            <label>Location
+                <select name="location" required>
+                {% for place in locations %}
+                    <option value="{{ place }}">{{ place }}</option>
+                {% endfor %}
+                </select>
+            </label>
+
+            <label>Area (square feet)
+                <input type="number" name="area_sqft"
+                min="300" max="10000" placeholder="e.g. 1200" required>
+            </label>
+
+            <label>Bedrooms
+                <select name="bedrooms" required>
+                    {% for n in range(1,7) %}
+                    <option value="{{ n }}">{{ n }} BHK</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label>Bathrooms
+                <select name="bathrooms" required>
+                    {% for n in range(1,6) %}
+                    <option value="{{ n }}">{{ n }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label class="full">Property age (years)
+                <input type="number" name="property_age"
+                min="0" max="100" placeholder="e.g. 5" required>
+            </label>
+
+        </div>
+
+        <button type="submit">Predict House Price →</button>
+    </form>
+
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+
+    {% if prediction is not none %}
+    <div class="result">
+        <div class="eyebrow">YOUR PREDICTED PROPERTY VALUE</div>
+        <div class="price">₹{{ "{:,.0f}".format(prediction) }}</div>
+        <p>Estimated using the Random Forest machine learning model.</p>
+    </div>
+    {% endif %}
+
+    <p class="disclaimer">
+        Educational demonstration using synthetic sample data.
+        Not a real property valuation.
+    </p>
+</section>
+
+</main>
+
+<!-- ANALYTICS DASHBOARD -->
+
+<section class="dashboard">
+
+    <div class="dashboard-title">
+        <div class="eyebrow">DATA SCIENCE INSIGHTS</div>
+        <h2>Property Analytics Dashboard</h2>
+        <p>Explore sample property prices and prediction activity.</p>
+    </div>
+
+    <div class="analytics-grid">
+
+        <div class="analytics-card">
+            <span>Total Predictions</span>
+            <h2>{{ history|length }}</h2>
+            <small>Latest 10 records displayed</small>
+        </div>
+
+        <div class="analytics-card">
+            <span>Locations Covered</span>
+            <h2>{{ locations|length }}</h2>
+            <small>Sample city dataset</small>
+        </div>
+
+        <div class="analytics-card">
+            <span>ML Algorithm</span>
+            <h2>Random Forest</h2>
+            <small>Regression model</small>
+        </div>
+
+    </div>
+
+    <!-- CITY COMPARISON -->
+
+    <div class="analytics-card chart-card">
+        <h2>City-wise Average House Prices</h2>
+        <p>Average prices from the included sample dataset.</p>
+
+        <canvas id="cityChart"></canvas>
+    </div>
+
+    <!-- PREDICTION HISTORY -->
+
+    <div class="analytics-card history-card">
+        <h2>Recent Prediction History</h2>
+        <p>Your latest house price predictions.</p>
+
+        <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Location</th>
+                    <th>Area</th>
+                    <th>BHK</th>
+                    <th>Age</th>
+                    <th>Predicted Price</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+
+            <tbody>
+            {% for item in history %}
+                <tr>
+                    <td>{{ item.location }}</td>
+                    <td>{{ item.area }} sq.ft</td>
+                    <td>{{ item.bedrooms }}</td>
+                    <td>{{ item.age }} years</td>
+                    <td>₹{{ "{:,.0f}".format(item.predicted_price) }}</td>
+                    <td>{{ item.created_at }}</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="6">No predictions yet. Try the prediction form above.</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    <!-- LOCATION COMPARISON -->
+
+    <div class="analytics-card">
+        <h2>Location Price Comparison</h2>
+        <div class="location-grid">
+            {% for city, price in location_prices.items() %}
+            <div class="location-item">
+                <strong>{{ city }}</strong>
+                <span>₹{{ "{:,.0f}".format(price) }}</span>
+                <small>Average sample price</small>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</section>
+
+<footer>
+    <strong>HomeValue AI</strong>
+    <p>House Price Prediction using Machine Learning</p>
+    <small>Academic Mini Project | Data Science & AI/ML</small>
+</footer>
+
+<script>
+const cityLabels = {{ location_prices.keys()|list|tojson }};
+const cityValues = {{ location_prices.values()|list|tojson }};
+
+new Chart(document.getElementById("cityChart"), {
+    type: "bar",
+    data: {
+        labels: cityLabels,
+        datasets: [{
+            label: "Average Price (INR)",
+            data: cityValues,
+            backgroundColor: "#3979d8",
+            borderRadius: 8
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return "₹" + (value / 100000).toFixed(0) + "L";
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+
+</body>
+</html>
